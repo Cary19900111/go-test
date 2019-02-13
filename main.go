@@ -153,7 +153,7 @@ func main() {
 	user := User{5, "zhangsan", "pwd"}
 	username, pwd := GetUsernameAndPwd(user)
 	httpGet(username, pwd)
-	fmt.Println("123")
+	fmt.Println("test")
 	// username,password:=
 	// req := entOpenAcctResultReq{
 	// 	version:       "v0.0.1",
