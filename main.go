@@ -4,9 +4,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base64"
-	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -14,44 +12,15 @@ import (
 	"reflect"
 	"sort"
 	"strings"
-	"time"
 )
 
 type entOpenAcctResultReq struct {
-	version       string
-	pay_tenant_id uint64
-	mch_no        string
-	order_id      string
-	send_date     string
+	Version     string
+	PayTenantId uint64
+	MchNo       string
+	OrderId     string
+	SendDate    string
 }
-
-// func (req entOpenAcctResultReq) GetSortString() string {
-// 	key1 := reflect.TypeOf(req)
-// 	value1 := reflect.ValueOf(req)
-
-// 	var data = make(map[string]interface{})
-// 	for i := 0; i < key1.NumField(); i++ {
-// 		data[key1.Field(i).Name] = value1.Field(i).Interface()
-// 	}
-// 	// fmt.Printf("%+v", data)
-// 	// var newMp = make([]string, 0)
-// 	// for k, _ := range data {
-// 	// 	newMp = append(newMp, k)
-// 	// }
-// 	// sort.Strings(newMp)
-// 	// for _, v := range newMp {
-// 	// 	fmt.Printf(v, data[v])
-// 	// }
-// 	// return data[v]
-// 	// fmt.Printf("%+v", data)
-// 	// for k, v := range rv {
-// 	// 	fmt.Printf("%+v", k)
-// 	// }
-// 	// for k, v := range req {
-// 	// 	fmt.Printf("%+v", k)
-// 	// }
-// 	return req.version
-// }
 
 type User struct {
 	Id       int64
@@ -60,7 +29,7 @@ type User struct {
 }
 
 func GetUsernameAndPwd(obj interface{}) (string, string) {
-	var s string = ""
+	var s string
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
 
@@ -78,25 +47,26 @@ func GetUsernameAndPwd(obj interface{}) (string, string) {
 		s += "&" + KeyValue
 		// fmt.Println("Key:", k, "Value:", data[k])
 	}
-	timeNow := time.Now().Format("20060102150405")
-	keyID := "KY0123456789012345678900"
-	s = keyID + "&" + timeNow + "&" + "POST" + "&" + "/v1/open" + s
-	privateKey, _ := GetPrivateKey()
-	p, privateKey := pem.Decode(privateKey)
-	// fmt.Println(privateKey)
-	//var priKey *rsa.PrivateKey
-	priKey, err := x509.ParsePKCS1PrivateKey(p.Bytes)
-	if err != nil {
-		fmt.Println(err)
-		return "", ""
-	}
-	pwd, err := RSAWithSHA1(s, priKey)
-	if err != nil {
-		fmt.Printf("%+v", err)
-		return "", ""
-	}
-	username := keyID + "_" + timeNow
-	return username, pwd
+	return "", ""
+	// timeNow := time.Now().Format("20060102150405")
+	// keyID := "KY0123456789012345678900"
+	// s = keyID + "&" + timeNow + "&" + "POST" + "&" + "/v1/open" + s
+	// privateKey, _ := GetPrivateKey()
+	// p, privateKey := pem.Decode(privateKey)
+	// // fmt.Println(privateKey)
+	// //var priKey *rsa.PrivateKey
+	// priKey, err := x509.ParsePKCS1PrivateKey(p.Bytes)
+	// if err != nil {
+	// 	fmt.Println(err)
+	// 	return "", ""
+	// }
+	// pwd, err := RSAWithSHA1(s, priKey)
+	// if err != nil {
+	// 	fmt.Printf("%+v", err)
+	// 	return "", ""
+	// }
+	// username := keyID + "_" + timeNow
+	// return username, pwd
 	// return "test"
 }
 
@@ -150,8 +120,17 @@ func httpGet(username string, pwd string) {
 }
 
 func main() {
-	user := User{5, "zhangsan", "pwd"}
-	username, pwd := GetUsernameAndPwd(user)
+	// user := User{5, "zhangsan", "pwd"}
+	req := entOpenAcctResultReq{
+		Version:     "v0.0.1",
+		PayTenantId: 123,
+		MchNo:       "mch_no12332123",
+		OrderId:     "order_id13493042",
+		SendDate:    "201902010000",
+	}
+	// fmt.Println(user)
+	// fmt.Println(req)
+	username, pwd := GetUsernameAndPwd(req)
 	httpGet(username, pwd)
 	fmt.Println("test")
 	// username,password:=
