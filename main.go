@@ -5,12 +5,15 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -56,7 +59,7 @@ type User struct {
 	Password string
 }
 
-func Struct2Map(obj interface{}) string {
+func GetUsernameAndPwd(obj interface{}) (string, string) {
 	var s string = ""
 	t := reflect.TypeOf(obj)
 	v := reflect.ValueOf(obj)
@@ -85,10 +88,15 @@ func Struct2Map(obj interface{}) string {
 	priKey, err := x509.ParsePKCS1PrivateKey(p.Bytes)
 	if err != nil {
 		fmt.Println(err)
-		return ""
+		return "", ""
 	}
-	s_sign, err := RSAWithSHA1(s, priKey)
-	return s_sign
+	pwd, err := RSAWithSHA1(s, priKey)
+	if err != nil {
+		fmt.Printf("%+v", err)
+		return "", ""
+	}
+	username := keyID + "_" + timeNow
+	return username, pwd
 	// return "test"
 }
 
@@ -101,17 +109,6 @@ func GetPrivateKey() ([]byte, error) {
 	return ioutil.ReadAll(f)
 }
 
-// func GetCurrentTime() string {
-// 	t_year := time.Now().Year()
-// 	t_month := time.Now().Month()
-// 	t_day := time.Now().Day()
-// 	t_hour := time.Now().Hour()
-// 	t_minute := time.Now().Minute()
-// 	t_second := time.Now().Second()
-// 	fmt.Println(t_year, t_month, t_day, t_hour, t_minute, t_second)
-// 	return "111"
-// }
-
 func RSAWithSHA1(s string, privateKey *rsa.PrivateKey) (string, error) {
 	h := crypto.Hash.New(crypto.SHA1)
 	h.Write([]byte(s))
@@ -122,18 +119,41 @@ func RSAWithSHA1(s string, privateKey *rsa.PrivateKey) (string, error) {
 		fmt.Println("Error from signing: %s\n", err)
 		return "", err
 	}
-	fmt.Printf("Signature: %x\n", signature)
+	// fmt.Printf("Signature: %x\n", signature)
 	signRet := fmt.Sprintf("%x", signature)
-	fmt.Printf("sigRet: %s\n", signRet)
+	// fmt.Printf("sigRet: %s\n", signRet)
 	return signRet, nil
 }
 
+func httpGet(username string, pwd string) {
+	authString := fmt.Sprintf("%s:%s", username, pwd)
+	encodeString := base64.StdEncoding.EncodeToString([]byte(authString))
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "http://open.test.cibfintech.com/api/cloudwallet/mchAccsQuery", strings.NewReader("name=cjb"))
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+	req.Header.Set("Authorization", encodeString)
+
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		fmt.Printf("%+v", err)
+	}
+
+	fmt.Println(string(body))
+}
+
 func main() {
-	// CurrentTime := GetCurrentTime()
-	// fmt.Printf("%+v", CurrentTime)
 	user := User{5, "zhangsan", "pwd"}
-	data := Struct2Map(user)
-	fmt.Println(data)
+	username, pwd := GetUsernameAndPwd(user)
+	httpGet(username, pwd)
+	// username,password:=
 	// req := entOpenAcctResultReq{
 	// 	version:       "v0.0.1",
 	// 	pay_tenant_id: 123,
