@@ -1,7 +1,14 @@
 package main
 
 import (
+	"crypto"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"reflect"
 	"sort"
 	"time"
@@ -44,10 +51,9 @@ type entOpenAcctResultReq struct {
 // }
 
 type User struct {
-	Id        int64
-	Username  string
-	Password  string
-	Logintime time.Time
+	Id       int64
+	Username string
+	Password string
 }
 
 func Struct2Map(obj interface{}) string {
@@ -69,11 +75,63 @@ func Struct2Map(obj interface{}) string {
 		s += "&" + KeyValue
 		// fmt.Println("Key:", k, "Value:", data[k])
 	}
-	return s
+	timeNow := time.Now().Format("20060102150405")
+	keyID := "KY0123456789012345678900"
+	s = keyID + "&" + timeNow + "&" + "POST" + "&" + "/v1/open" + s
+	privateKey, _ := GetPrivateKey()
+	p, privateKey := pem.Decode(privateKey)
+	// fmt.Println(privateKey)
+	//var priKey *rsa.PrivateKey
+	priKey, err := x509.ParsePKCS1PrivateKey(p.Bytes)
+	if err != nil {
+		fmt.Println(err)
+		return ""
+	}
+	s_sign, err := RSAWithSHA1(s, priKey)
+	return s_sign
+	// return "test"
+}
+
+func GetPrivateKey() ([]byte, error) {
+	filePth := "./rsa-private_key.pem"
+	f, err := os.Open(filePth)
+	if err != nil {
+		return nil, err
+	}
+	return ioutil.ReadAll(f)
+}
+
+// func GetCurrentTime() string {
+// 	t_year := time.Now().Year()
+// 	t_month := time.Now().Month()
+// 	t_day := time.Now().Day()
+// 	t_hour := time.Now().Hour()
+// 	t_minute := time.Now().Minute()
+// 	t_second := time.Now().Second()
+// 	fmt.Println(t_year, t_month, t_day, t_hour, t_minute, t_second)
+// 	return "111"
+// }
+
+func RSAWithSHA1(s string, privateKey *rsa.PrivateKey) (string, error) {
+	h := crypto.Hash.New(crypto.SHA1)
+	h.Write([]byte(s))
+	hashed := h.Sum(nil)
+	signature, err := rsa.SignPKCS1v15(rand.Reader, privateKey,
+		crypto.SHA1, hashed)
+	if err != nil {
+		fmt.Println("Error from signing: %s\n", err)
+		return "", err
+	}
+	fmt.Printf("Signature: %x\n", signature)
+	signRet := fmt.Sprintf("%x", signature)
+	fmt.Printf("sigRet: %s\n", signRet)
+	return signRet, nil
 }
 
 func main() {
-	user := User{5, "zhangsan", "pwd", time.Now()}
+	// CurrentTime := GetCurrentTime()
+	// fmt.Printf("%+v", CurrentTime)
+	user := User{5, "zhangsan", "pwd"}
 	data := Struct2Map(user)
 	fmt.Println(data)
 	// req := entOpenAcctResultReq{
